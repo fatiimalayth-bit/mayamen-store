@@ -492,6 +492,7 @@
             animation: fadeInUp 0.6s ease forwards;
         }
     </style>
+<base target="_blank">
 </head>
 <body>
 
@@ -573,7 +574,7 @@
         const SUPABASE_URL = 'https://aagjgmicuqotposwfuek.supabase.co';  // ← حطي رابط مشروعك
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhZ2lnbWljdXFvdHBvc3dmdWVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxODkzMjUsImV4cCI6MjA5OTc2NTMyNX0.HWoTrc0vlWGbuVQsO1nW_bjJt7COWh0yAyjGM80XnbM';  // ← حطي مفتاح anon key
 
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let allProducts = [];
         let currentProduct = null;
@@ -596,7 +597,7 @@
         // Load products from Supabase
         async function loadProducts() {
             try {
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('products')
                     .select('*')
                     .order('id', { ascending: true });
