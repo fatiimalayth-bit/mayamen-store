@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ميامين MAYAMEEN | متجر إلكتروني</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        :root {
+            --bg: #faf7f2; --bg-dark: #1a1614; --fg: #1a1a1a; --fg-dark: #faf7f2;
+            --muted: #9a8b7a; --accent: #8b2942; --accent-hover: #a33a55;
+            --gold: #d4a574; --card: #ffffff; --card-dark: #2a2420;
+            --border: #e8e2d9; --border-dark: #3d3530;
+            --shadow: rgba(139, 41, 66, 0.08);
+            --kohr: #e85d04; --kamisafe: #f4d03f; --kemei: #1e40af;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: "Tajawal", sans-serif; background-color: var(--bg); color: var(--fg); line-height: 1.6; overflow-x: hidden; }
+        .bg-pattern { background-image: radial-gradient(circle at 20% 80%, rgba(139, 41, 66, 0.05) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(212, 165, 116, 0.08) 0%, transparent 50%); }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-20px); } }
+        .animate-fade-in-up { animation: fadeInUp 0.8s ease-out forwards; }
+        .animate-float { animation: float 6s ease-in-out infinite; }
+        .btn-primary { background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%); color: white; padding: 0.875rem 2rem; border-radius: 50px; font-weight: 600; transition: all 0.3s ease; border: none; cursor: pointer; font-family: "Tajawal", sans-serif; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(139, 41, 66, 0.3); }
+        .btn-secondary { background: transparent; color: var(--fg); padding: 0.875rem 2rem; border-radius: 50px; font-weight: 500; transition: all 0.3s ease; border: 2px solid var(--border); cursor: pointer; font-family: "Tajawal", sans-serif; }
+        .card { background: var(--card); border-radius: 24px; border: 1px solid var(--border); transition: all 0.4s ease; overflow: hidden; }
+        .card:hover { transform: translateY(-8px); box-shadow: 0 20px 60px var(--shadow); }
+        .nav-link { position: relative; color: var(--fg); font-weight: 500; transition: color 0.3s ease; padding: 0.5rem 0; }
+        .nav-link::after { content: ""; position: absolute; bottom: -4px; right: 0; width: 0; height: 2px; background: var(--accent); transition: width 0.3s ease; }
+        .nav-link:hover { color: var(--accent); }
+        .nav-link:hover::after { width: 100%; }
+        .cart-drawer { position: fixed; top: 0; left: 0; width: 100%; max-width: 440px; height: 100vh; background: var(--card); box-shadow: 10px 0 60px rgba(0, 0, 0, 0.15); transform: translateX(-100%); transition: transform 0.4s ease; z-index: 1000; display: flex; flex-direction: column; }
+        .cart-drawer.open { transform: translateX(0); }
+        .cart-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); opacity: 0; visibility: hidden; transition: all 0.3s ease; z-index: 999; }
+        .cart-overlay.open { opacity: 1; visibility: visible; }
+        .input-field { width: 100%; padding: 1rem 1.25rem; background: var(--bg); border: 2px solid var(--border); border-radius: 12px; font-size: 1rem; color: var(--fg); transition: all 0.3s ease; font-family: "Tajawal", sans-serif; }
+        .input-field:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px rgba(139, 41, 66, 0.1); }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 2000; opacity: 0; visibility: hidden; transition: all 0.3s ease; padding: 1rem; }
+        .modal-overlay.open { opacity: 1; visibility: visible; }
+        .modal-content { background: var(--card); border-radius: 24px; max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto; transform: scale(0.9); opacity: 0; transition: all 0.3s ease; }
+        .modal-overlay.open .modal-content { transform: scale(1); opacity: 1; }
+        .toast-container { position: fixed; bottom: 2rem; left: 2rem; z-index: 3000; display: flex; flex-direction: column; gap: 0.75rem; }
+        .toast { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.5rem; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15); display: flex; align-items: center; gap: 0.75rem; animation: fadeInUp 0.4s ease-out forwards; }
+        .toast.success { border-right: 4px solid #2d6a4f; }
+        @media (max-width: 768px) {
+            .cart-drawer { max-width: 100%; }
+        }
+    </style>
+</head>
+<body class="bg-pattern">
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-[var(--bg)]/90 backdrop-blur-xl border-b border-[var(--border)]">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <a href="#" class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-[#e85d04] via-[#f4d03f] to-[#1e40af] flex items-center justify-center shadow-lg">
+                        <span class="text-white text-xl font-bold">M</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-2xl font-bold tracking-tight">ميامين</span>
+                        <span class="text-xs text-[var(--muted)] -mt-1">MAYAMEEN</span>
+                    </div>
+                </a>
+                <div class="hidden md:flex items-center gap-8">
+                    <a href="#products" class="nav-link">المنتجات</a>
+                    <a href="#brands" class="nav-link">الماركات</a>
+                    <a href="#categories" class="nav-link">الأقسام</a>
+                    <a href="#about" class="nav-link">من نحن</a>
+                    <a href="#contact" class="nav-link">تواصل معنا</a>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button id="loginBtn" class="p-2 rounded-full hover:bg-[var(--border)] transition-colors" title="تسجيل الدخول">
+                        <i class="fas fa-user text-lg"></i>
+                    </button>
+                    <button id="adminToggle" class="p-2 rounded-full hover:bg-[var(--border)] transition-colors" title="لوحة التحكم">
+                        <i class="fas fa-cog text-lg"></i>
+                    </button>
+                    <button id="cartBtn" class="relative p-2 rounded-full hover:bg-[var(--border)] transition-colors">
+                        <i class="fas fa-shopping-cart text-lg"></i>
+                        <span id="cartCount" class="absolute -top-1 -right-1 w-5 h-5 bg-[var(--accent)] text-white text-xs rounded-full flex items-center justify-center font-semibold hidden">0</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="pt-20">
+        <!-- Hero Section -->
+        <section class="min-h-[90vh] flex items-center relative overflow-hidden" style="background: linear-gradient(135deg, rgba(232, 93, 4, 0.05) 0%, rgba(244, 208, 63, 0.05) 50%, rgba(30, 64, 175, 0.05) 100%);">
+            <div class="absolute top-20 left-10 w-72 h-72 rounded-full bg-[#e85d04]/10 blur-3xl animate-float"></div>
+            <div class="absolute bottom-20 right-10 w-96 h-96 rounded-full bg-[#1e40af]/10 blur-3xl animate-float" style="animation-delay: -3s"></div>
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+                <div class="grid lg:grid-cols-2 gap-12 items-center">
+                    <div class="space-y-8 animate-fade-in-up text-right">
+                        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20">
+                            <span class="w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse"></span>
+                            <span class="text-sm font-medium text-[var(--accent)]">الوكيل والموزع الحصري في العراق</span>
+                        </div>
+                        <h1 class="text-5xl sm:text-6xl lg:text-7xl font-bold leading-[1.1] tracking-tight">
+                            <span>جمال يشرق</span> <br />
+                            <span style="background: linear-gradient(135deg, var(--accent) 0%, var(--gold) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">تحت شمس ميامي</span>
+                        </h1>
+                        <p class="text-lg sm:text-xl text-[var(--muted)] max-w-lg leading-relaxed">
+                            ميامين MAYAMEEN - الوكيل والموزع الحصري في العراق لأفضل الماركات العالمية
+                        </p>
+                        <div class="flex flex-wrap gap-4 justify-end">
+                            <a href="#products" class="btn-primary">تصفح المنتجات</a>
+                            <a href="#about" class="btn-secondary">اعرف أكثر</a>
+                        </div>
+                    </div>
+                    <div class="relative animate-fade-in-up flex items-center justify-center" style="animation-delay: 0.2s">
+                        <div class="relative aspect-square max-w-lg mx-auto w-full">
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <div class="w-80 h-80 rounded-full bg-gradient-to-br from-[#e85d04]/20 via-[#f4d03f]/20 to-[#1e40af]/20 backdrop-blur-sm flex items-center justify-center animate-float">
+                                    <div class="w-60 h-60 rounded-full bg-gradient-to-br from-[#f4d03f]/30 to-[#1e40af]/10 flex items-center justify-center">
+                                        <span class="text-7xl font-bold text-[#e85d04]/40">M</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Products Section -->
+        <section id="products" class="py-24 bg-[var(--card)]">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+                    <div class="text-right">
+                        <span class="text-sm font-semibold text-[var(--accent)] tracking-widest uppercase">منتجاتنا</span>
+                        <h2 class="text-4xl sm:text-5xl font-bold mt-2">المنتجات المتوفرة</h2>
+                        <p class="text-[var(--muted)] mt-2">انقر على إضافة للسلة لطلب عرض سعر</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2 p-1.5 bg-[var(--bg)] rounded-full border border-[var(--border)]">
+                        <button class="tab-btn active" data-filter="all">الكل</button>
+                        <button class="tab-btn" data-filter="kohr">KOHR</button>
+                        <button class="tab-btn" data-filter="kamisafe">Kamisafe</button>
+                        <button class="tab-btn" data-filter="kemei">KEMEI</button>
+                    </div>
+                </div>
+                <div id="productsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="col-span-full text-center py-16">
+                        <i class="fas fa-spinner fa-spin text-6xl text-[var(--muted)] mb-4"></i>
+                        <h3 class="text-2xl font-bold mb-2">جاري تحميل المنتجات</h3>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- About Section -->
+        <section id="about" class="py-24">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid lg:grid-cols-2 gap-16 items-center">
+                    <div class="space-y-6 text-right">
+                        <span class="text-sm font-semibold text-[var(--accent)] tracking-widest uppercase">من نحن</span>
+                        <h2 class="text-4xl sm:text-5xl font-bold">ميامين MAYAMEEN</h2>
+                        <p class="text-lg text-[var(--muted)] leading-relaxed">
+                            ميامين هي شركة رائدة في العراق، الوكيل والموزع الحصري لأفضل الماركات العالمية
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contact Section -->
+        <section id="contact" class="py-24 bg-[var(--card)]">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <span class="text-sm font-semibold text-[var(--accent)] tracking-widest uppercase">تواصل معنا</span>
+                    <h2 class="text-4xl sm:text-5xl font-bold mt-2">تواصلوا معنا</h2>
+                </div>
+                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+                    <div class="card p-6 text-center">
+                        <div class="w-14 h-14 rounded-full bg-[var(--accent)]/10 flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-phone-alt text-[var(--accent)] text-xl"></i>
+                        </div>
+                        <p class="font-semibold text-lg mb-2">اتصلوا بنا</p>
+                        <p class="text-[var(--muted)] text-sm">+964 770 123 4567</p>
+                    </div>
+                    <div class="card p-6 text-center">
+                        <div class="w-14 h-14 rounded-full bg-[var(--accent)]/10 flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-envelope text-[var(--accent)] text-xl"></i>
+                        </div>
+                        <p class="font-semibold text-lg mb-2">البريد الإلكتروني</p>
+                        <p class="text-[var(--muted)] text-sm">info@mayameen.iq</p>
+                    </div>
+                    <div class="card p-6 text-center">
+                        <div class="w-14 h-14 rounded-full bg-[var(--accent)]/10 flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-map-marker-alt text-[var(--accent)] text-xl"></i>
+                        </div>
+                        <p class="font-semibold text-lg mb-2">مواقعنا</p>
+                        <p class="text-[var(--muted)] text-sm">بابل - العراق</p>
+                    </div>
+                    <div class="card p-6 text-center">
+                        <div class="w-14 h-14 rounded-full bg-[var(--accent)]/10 flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-share-alt text-[var(--accent)] text-xl"></i>
+                        </div>
+                        <p class="font-semibold text-lg mb-2">وسائل التواصل</p>
+                        <div class="flex justify-center gap-2">
+                            <a href="#" class="w-10 h-10 rounded-full bg-[#E1306C] flex items-center justify-center text-white"><i class="fab fa-instagram"></i></a>
+                            <a href="#" class="w-10 h-10 rounded-full bg-[#000000] flex items-center justify-center text-white"><i class="fab fa-tiktok"></i></a>
+                            <a href="#" class="w-10 h-10 rounded-full bg-[#1877F2] flex items-center justify-center text-white"><i class="fab fa-facebook-f"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-[var(--bg-dark)] text-[var(--fg-dark)] py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <p class="text-[var(--muted-dark)] text-sm">© 2026 ميامين MAYAMEEN. جميع الحقوق محفوظة.</p>
+                <p class="text-[var(--gold)] text-sm mt-2 font-bold tracking-wide">Designed & Developed by ENG.FATIMA</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Cart Drawer -->
+    <div id="cartOverlay" class="cart-overlay"></div>
+    <div id="cartDrawer" class="cart-drawer">
+        <div class="p-6 border-b border-[var(--border)]">
+            <div class="flex items-center justify-between">
+                <h2 class="text-xl font-semibold">سلة الطلبات</h2>
+                <button id="closeCart" class="p-2 rounded-full hover:bg-[var(--border)] transition-colors">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+        </div>
+        <div id="cartItems" class="flex-1 overflow-y-auto p-6"></div>
+        <div id="cartFooter" class="p-6 border-t border-[var(--border)] space-y-4 hidden">
+            <div class="flex items-center justify-between text-lg">
+                <span class="font-medium">الإجمالي</span>
+                <span id="cartTotal" class="font-bold">---</span>
+            </div>
+            <button id="checkoutBtn" class="btn-primary w-full">إرسال طلب عرض سعر</button>
+        </div>
+    </div>
+
+    <!-- Checkout Modal -->
+    <div id="checkoutModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="p-6 border-b border-[var(--border)]">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-semibold">إرسال طلب</h2>
+                    <button id="closeCheckout" class="p-2 rounded-full hover:bg-[var(--border)] transition-colors">
+                        <i class="fas fa-times text-lg"></i>
+                    </button>
+                </div>
+            </div>
+            <form id="checkoutForm" class="p-6 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="text" placeholder="الاسم" class="input-field" required />
+                    <input type="text" placeholder="اللقب" class="input-field" required />
+                </div>
+                <input type="email" placeholder="البريد الإلكتروني" class="input-field" required />
+                <input type="tel" placeholder="رقم الهاتف" class="input-field" required />
+                <input type="text" placeholder="العنوان" class="input-field" required />
+                <div class="grid grid-cols-3 gap-4">
+                    <input type="text" placeholder="المدينة" class="input-field" required />
+                    <input type="text" placeholder="المحافظة" class="input-field" required />
+                    <input type="text" placeholder="الرمز البريدي" class="input-field" />
+                </div>
+                <textarea placeholder="ملاحظات إضافية" class="input-field" rows="3"></textarea>
+                <button type="submit" class="btn-primary w-full">إرسال طلب</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 420px;">
+            <div class="p-6 border-b border-[var(--border)]">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-semibold">تسجيل الدخول</h2>
+                    <button id="closeLogin" class="p-2 rounded-full hover:bg-[var(--border)] transition-colors">
+                        <i class="fas fa-times text-lg"></i>
+                    </button>
+                </div>
+            </div>
+            <form id="loginForm" class="p-6 space-y-4">
+                <input type="email" id="loginEmail" placeholder="البريد الإلكتروني" class="input-field" required />
+                <input type="password" id="loginPassword" placeholder="كلمة المرور" class="input-field" required />
+                <button type="submit" class="btn-primary w-full">تسجيل الدخول</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script>
+    // ============================================
+    // SUPABASE CONFIGURATION
+    // ============================================
+    // غيري هذي البيانات لبياناتك من Supabase!
+    const SUPABASE_URL = 'https://aagigmicuqotposwfuiek.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhZ2lnbWljdXFvdHBvc3dmdWllayIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzUzMjY0MjE3LCJleHAiOjIwNjg4NDAyMTd9.CIvZP';
+    
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // ============================================
+    // DATA & STATE
+    // ============================================
+    let products = [];
+    let cart = [];
+    let currentUser = null;
+    let isAdmin = false;
+
+    // ============================================
+    // DOM ELEMENTS
+    // ============================================
+    const cartBtn = document.getElementById("cartBtn");
+    const cartDrawer = document.getElementById("cartDrawer");
+    const cartOverlay = document.getElementById("cartOverlay");
+    const closeCart = document.getElementById("closeCart");
+    const cartItems = document.getElementById("cartItems");
+    const cartFooter = document.getElementById("cartFooter");
+    const cartTotal = document.getElementById("cartTotal");
+    const cartCount = document.getElementById("cartCount");
+    const productsGrid = document.getElementById("productsGrid");
+    const checkoutBtn = document.getElementById("checkoutBtn");
+    const checkoutModal = document.getElementById("checkoutModal");
+    const closeCheckout = document.getElementById("closeCheckout");
+    const checkoutForm = document.getElementById("checkoutForm");
+    const loginBtn = document.getElementById("loginBtn");
+    const loginModal = document.getElementById("loginModal");
+    const closeLogin = document.getElementById("closeLogin");
+    const loginForm = document.getElementById("loginForm");
+    const adminToggle = document.getElementById("adminToggle");
+    const toastContainer = document.getElementById("toastContainer");
+
+    // ============================================
+    // UTILITY FUNCTIONS
+    // ============================================
+    function showToast(message, type = "success") {
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle text-green-600' : 'exclamation-circle text-red-600'}"></i><span>${message}</span>`;
+        toastContainer.appendChild(toast);
+        setTimeout(() => { toast.style.opacity = "0"; toast.style.transform = "translateY(20px)"; setTimeout(() => toast.remove(), 300); }, 3000);
+    }
+
+    function formatPrice(price) {
+        return price ? price.toLocaleString('ar-IQ') + " د.ع" : '---';
+    }
+
+    // ============================================
+    // SUPABASE FUNCTIONS
+    // ============================================
+    async function loadProducts() {
+        try {
+            const { data, error } = await supabase
+                .from('products')
+                .select('*');
+            
+            if (error) throw error;
+            
+            products = data || [];
+            renderProducts();
+        } catch (error) {
+            console.error('Error loading products:', error);
+            showToast('خطأ في تحميل المنتجات', 'error');
+        }
+    }
+
+    async function submitOrder(orderData) {
+        try {
+            const { data, error } = await supabase
+                .from('orders')
+                .insert([orderData]);
+            
+            if (error) throw error;
+            
+            showToast('تم إرسال الطلب بنجاح!');
+            return true;
+        } catch (error) {
+            console.error('Error submitting order:', error);
+            showToast('خطأ في إرسال الطلب', 'error');
+            return false;
+        }
+    }
+
+    async function loginUser(email, password) {
+        try {
+            const { data, error } = await supabase
+                .from('customers')
+                .select('*')
+                .eq('email', email)
+                .eq('password', password)
+                .single();
+            
+            if (error) throw error;
+            
+            if (data) {
+                currentUser = data;
+                showToast('تم تسجيل الدخول بنجاح!');
+                return true;
+            }
+            return false;
+        } catch (error) {
+            showToast('البريد الإلكتروني أو كلمة المرور غير صحيحة', 'error');
+            return false;
+        }
+    }
+
+    // ============================================
+    // PRODUCT RENDERING
+    // ============================================
+    function renderProducts(filter = "all") {
+        let filteredProducts = products;
+        if (filter !== "all") {
+            filteredProducts = products.filter(p => p.brand === filter);
+        }
+
+        if (filteredProducts.length === 0) {
+            productsGrid.innerHTML = `
+                <div class="col-span-full text-center py-16">
+                    <i class="fas fa-box-open text-6xl text-[var(--muted)] mb-4"></i>
+                    <h3 class="text-2xl font-bold mb-2">لا توجد منتجات</h3>
+                    <p class="text-[var(--muted)]">سيتم إضافة المنتجات قريباً</p>
+                </div>
+            `;
+            return;
+        }
+
+        productsGrid.innerHTML = filteredProducts.map((product, index) => {
+            const showPrice = isAdmin || (currentUser && currentUser.type === 'wholesale');
+            const priceDisplay = showPrice 
+                ? `<span class="text-xl font-bold text-[var(--accent)]">${formatPrice(product.price)}</span>`
+                : `<span class="text-sm text-[var(--muted)]">السعر للعملاء المسجلين</span>`;
+
+            const brandColor = product.brand === 'kohr' ? '#e85d04' : product.brand === 'kamisafe' ? '#f39c12' : '#1e40af';
+
+            return `
+                <div class="card group" style="border-top: 3px solid ${brandColor};">
+                    <div class="relative overflow-hidden">
+                        <img src="${product.image || 'https://via.placeholder.com/400x400?text=No+Image'}" 
+                             alt="${product.name_en}" 
+                             class="w-full h-64 object-cover"
+                             onerror="this.src='https://via.placeholder.com/400x400?text=No+Image'">
+                        <button onclick="addToCart(${product.id})" 
+                                class="absolute bottom-4 left-4 w-12 h-12 rounded-full bg-[var(--accent)] text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <div class="p-5 text-right">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold" style="color: ${brandColor}">${product.brand.toUpperCase()}</span>
+                            <div class="flex items-center gap-1">
+                                <span class="text-sm font-medium">${product.rating || 4.5}</span>
+                                <i class="fas fa-star text-[var(--gold)] text-xs"></i>
+                            </div>
+                        </div>
+                        <h3 class="font-bold text-lg mb-1">${product.name_en}</h3>
+                        <p class="text-sm text-[var(--muted)] mb-3 line-clamp-2">${product.description_ar || ''}</p>
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-[var(--muted)] bg-[var(--bg)] px-2 py-1 rounded-full">${product.category}</span>
+                            ${priceDisplay}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join("");
+    }
+
+    // ============================================
+    // CART FUNCTIONS
+    // ============================================
+    function addToCart(productId) {
+        const product = products.find(p => p.id === productId);
+        if (!product) return;
+        
+        const existingItem = cart.find(item => item.id === productId);
+        if (existingItem) {
+            existingItem.quantity += 1;
+        } else {
+            cart.push({ ...product, quantity: 1 });
+        }
+        
+        updateCart();
+        showToast(`تمت إضافة ${product.name_en} إلى السلة`);
+    }
+
+    function removeFromCart(productId) {
+        cart = cart.filter(item => item.id !== productId);
+        updateCart();
+    }
+
+    function updateCart() {
+        const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+        
+        if (totalItems > 0) {
+            cartCount.textContent = totalItems;
+            cartCount.classList.remove("hidden");
+        } else {
+            cartCount.classList.add("hidden");
+        }
+
+        if (cart.length === 0) {
+            cartItems.innerHTML = `
+                <div class="text-center py-12">
+                    <i class="fas fa-shopping-cart text-6xl text-[var(--muted)] mb-4"></i>
+                    <p class="text-[var(--muted)]">السلة فارغة</p>
+                </div>
+            `;
+            cartFooter.classList.add("hidden");
+        } else {
+            cartItems.innerHTML = cart.map(item => `
+                <div class="flex gap-4 pb-4 border-b border-[var(--border)] mb-4">
+                    <div class="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
+                        <img src="${item.image || 'https://via.placeholder.com/100'}" alt="${item.name_en}" class="w-full h-full object-cover">
+                    </div>
+                    <div class="flex-1 text-right">
+                        <h4 class="font-medium">${item.name_en}</h4>
+                        <p class="text-sm text-[var(--muted)]">${formatPrice(item.price)}</p>
+                        <div class="flex items-center gap-3 mt-2 justify-end">
+                            <button onclick="updateQuantity(${item.id}, 1)" class="w-8 h-8 rounded-full bg-[var(--bg)] flex items-center justify-center"><i class="fas fa-plus text-xs"></i></button>
+                            <span class="font-medium">${item.quantity}</span>
+                            <button onclick="updateQuantity(${item.id}, -1)" class="w-8 h-8 rounded-full bg-[var(--bg)] flex items-center justify-center"><i class="fas fa-minus text-xs"></i></button>
+                        </div>
+                    </div>
+                    <button onclick="removeFromCart(${item.id})" class="p-2 hover:text-[var(--accent)] transition-colors">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            `).join("");
+            
+            cartFooter.classList.remove("hidden");
+            const total = cart.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0);
+            cartTotal.textContent = isAdmin || (currentUser && currentUser.type === 'wholesale') ? formatPrice(total) : '---';
+        }
+    }
+
+    function updateQuantity(productId, change) {
+        const item = cart.find(item => item.id === productId);
+        if (!item) return;
+        item.quantity += change;
+        if (item.quantity <= 0) { removeFromCart(productId); return; }
+        updateCart();
+    }
+
+    function openCartDrawer() {
+        cartDrawer.classList.add("open");
+        cartOverlay.classList.add("open");
+        document.body.style.overflow = "hidden";
+    }
+
+    function closeCartDrawer() {
+        cartDrawer.classList.remove("open");
+        cartOverlay.classList.remove("open");
+        document.body.style.overflow = "";
+    }
+
+    // ============================================
+    // EVENT LISTENERS
+    // ============================================
+    cartBtn.addEventListener("click", openCartDrawer);
+    closeCart.addEventListener("click", closeCartDrawer);
+    cartOverlay.addEventListener("click", closeCartDrawer);
+
+    checkoutBtn.addEventListener("click", () => { 
+        closeCartDrawer(); 
+        checkoutModal.classList.add("open"); 
+    });
+    closeCheckout.addEventListener("click", () => checkoutModal.classList.remove("open"));
+
+    checkoutForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        
+        const orderData = {
+            customer_name: e.target[0].value + " " + e.target[1].value,
+            email: e.target[2].value,
+            phone: e.target[3].value,
+            address: e.target[4].value,
+            city: e.target[5].value,
+            items: JSON.stringify(cart.map(item => ({ id: item.id, name: item.name_en, quantity: item.quantity, price: item.price }))),
+            total: cart.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0),
+            status: 'processing'
+        };
+
+        const success = await submitOrder(orderData);
+        if (success) {
+            cart = [];
+            updateCart();
+            checkoutModal.classList.remove("open");
+            e.target.reset();
+        }
+    });
+
+    loginBtn.addEventListener("click", () => {
+        if (currentUser) {
+            currentUser = null;
+            showToast('تم تسجيل الخروج');
+            renderProducts();
+        } else {
+            loginModal.classList.add("open");
+        }
+    });
+
+    closeLogin.addEventListener("click", () => loginModal.classList.remove("open"));
+
+    loginForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const email = document.getElementById("loginEmail").value;
+        const password = document.getElementById("loginPassword").value;
+        
+        const success = await loginUser(email, password);
+        if (success) {
+            loginModal.classList.remove("open");
+            renderProducts();
+        }
+    });
+
+    adminToggle.addEventListener("click", () => {
+        isAdmin = !isAdmin;
+        if (isAdmin) {
+            showToast('تم تفعيل وضع الأدمن');
+        } else {
+            showToast('تم إلغاء وضع الأدمن');
+        }
+        renderProducts();
+    });
+
+    document.querySelectorAll("[data-filter]").forEach(btn => {
+        btn.addEventListener("click", () => {
+            document.querySelectorAll("[data-filter]").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            renderProducts(btn.dataset.filter);
+        });
+    });
+
+    // Close modals on escape
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+            closeCartDrawer();
+            checkoutModal.classList.remove("open");
+            loginModal.classList.remove("open");
+        }
+    });
+
+    // ============================================
+    // INITIALIZE
+    // ============================================
+    loadProducts();
+    </script>
+</body>
+</html>
